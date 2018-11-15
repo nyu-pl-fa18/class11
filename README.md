@@ -312,7 +312,7 @@ then it extends the class `AnyRef` by default. That is, the above
 class definition is actually interpreted as follows:
 
 ```scala
-class Point(val first: Double, val second: Double) {
+class Point(val first: Double, val second: Double) extends AnyRef {
   def print(): Unit = {
     println("Point(" + first + ", " + second + ")")
   }
