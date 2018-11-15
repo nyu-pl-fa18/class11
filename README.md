@@ -26,6 +26,13 @@ Scala vis-a-vis other OOP languages.
 
 ### Objects
 
+Suppose we want to create a representation of a point in a
+two-dimensional Cartesian space as a value in a Scala program. We
+could do this by creating an object instance that stores
+the two coordinates of the point, say as Double values, in two fields,
+say called `first` and `second`. Here is how to do this in
+Scala:
+
 ```scala
 object PointObj {
   val first = 1.0
@@ -34,13 +41,25 @@ object PointObj {
 }
 ``` 
 
+When this code is executed at run-time, then an object with fields
+`first` and `second` is allocated on the heap, and a global variable
+`PointObj` stores a reference to that point object. The fields of the
+object are initialized to values `1.0` and `2.0` respectively. We can
+access, e.g., the field `first` of that object as follows:
+
+```scala
+scala> PointObj.first
+res0: Double = 1.0
+```
+
+Objects like `PointObj` that declared using the `object` keyword are
+also called *singleton objects*.  What if we want to create many
+objects like `PointObj` that only differ in the values stored in the
+fields `first` and `second`? This is where classes come into play.
+
 ### Classes
 
-What if we want to create many objects like `PointObj` that only
-differ in the values stored in the fields `first` and `second`? This
-is where classes come into play.
-
-Here is a Scala class describing such point objects:
+Here is a Scala class describing general point objects:
 
 ```scala
 class Point(fst: Double, snd: Double) {
@@ -59,9 +78,9 @@ In general, the name of the class in a class definition is followed by
 a list of class parameters. The parameter list implicitly defines a
 *primary constructor* of that class with a corresponding list of
 parameters. A constructor is a special function that constructs an
-object of the class.
+object instance from the definition of the class.
 
-Here is how we create a point object:
+Here is how we can use the constructor to create a point object:
 
 ```scala
 scala> val p = new Point(1.0, 2.0)
@@ -147,8 +166,9 @@ concrete example, `p.print()` translates to `print(p)`.
 
 The name `this` is actually a keyword in Scala. A usage of `this`
 within the body of a method of a class will be bound to the instance
-on which the method is called. This can be useful for disambiguating
-between formal parameters of a method and the fields of a method:
+on which the method is called. This can be useful to disambiguate, e.g.,
+between formal parameters of a method and the fields of the instance
+on which that method is called:
 
 ```scala
 class Point(val first: Double, val second: Double) {
@@ -163,60 +183,46 @@ class Point(val first: Double, val second: Double) {
 ### Accessibility Modifiers
 
 By default all members (i.e. fields and methods) of objects are
-accessible by all other objects. 
+accessible by all other objects. Information hiding can be realized by
+modifying the accessibility of class or object members using so-called
+*visibililty modifiers*.
 
-default visibility of classes, fields, and methods in Scala is
-  `public`. Hence, we can access the values of the fields `first` and
-  `second` directly and we do not need to define extra getter
-  methods. Note that the public default visibility makes sense because
-  Scala discourages mutable state. In particular, we defined the two
-  fields as `val`s, so their values cannot be changed, once
-  an instance of class `Pair` has been created.  In Scala,
-  you can leave out the braces around an empty class body, so
-  `class C` is the same as `class C {}`.
-
-We can create instances of class `Pair` and access their
-fields as usual:
+For instance, suppose that we have an alternative implementation of
+our `Point` class where the two coordinates are mutable fields that
+can be updated by certain methods provided by the class. In such a
+scenario, we would not want to give all other objects direct access to
+these mutable fields (as this would allow other objects to modify the
+contents of these fields, which may break invariants that the point
+objects make about the values of these fields). Here is how this can
+be done:
 
 ```scala
-scala> val p = new Pair(1,2)
-p: Pair = Pair@1458e1cc
-scala> p.first
-res0: Int = 1
-```
-
-What if we do want to modify the values stored in a `Pair`
-object? In Java, we would do this by adding appropriate *setter methods*
-to the class:
-
-```java
-public class Pair {
-  private int first;
-  private int second;
-
-  ...
-
-  public void setFirst(int fst) {
-    first = fst;
-  }
-  public void setSecond(int snd) {
-    second = snd;
-  }
+class MutablePoint(private var first: Double, private var second: Double) {
+  def getFirst: Double = first
+  def getSecond: Double = second
 }
 ```
 
-In Scala, we could follow the same route: change all `val`s
-into `var`s, make them private, and add getter and setter
-methods. However, we want to avoid using `var` declarations
-as much as possible. The idiomatic solution in Scala is to make a copy
-of the entire object and change the appropriate value:
+Here, the accessibility modifier `private` is added to the field
+declarations. This modifier ensures that the two fields are only
+accessible from instances of the class `MutablePoint`. That is, two
+instances of `MutablePoints` can access each others fields `first` and
+`second` directly, however, instances of other classes cannot. In our
+code example, the class still provides indirect read access to the
+fields via the *getter* methods `getFirst` and `getSecond`. However,
+no instance of another class can assign new values to these fields.
 
-```scala
-class Pair(val first: Int, val second: Int) {
-  def setFirst(fst: Int): Pair = new Pair(fst, second)
-  def setSecond(snd: Int): Pair = new Pair(first, snd)
-}
-```
+The most important access modifiers are as follows:
+
+* `public` (default): every other object has access to the member
+
+* `private`: only instances of the current class have access to the member
+
+* `private[this]`: each instance only has access to its own version of
+  the member, but not the ones of other instances of the same class.
+  
+* `protected`: ech instance of the current class as well as all its
+  subclasses have access to the member (more on subclasses later).
 
 ### Secondary Constructors
 
@@ -249,10 +255,10 @@ object-oriented programming languages. It describes the ability to
 have an object or class 'specialize' another one, inheriting parent
 data and behavior. The subclass (i.e. the inheriting class) defines a
 *subtype* of the type of its superclass (i.e. the parent class it
-inherits from). Here, we think of the type of the class as the
-collection of its members and their signatures (i.e. the fields of the
-class with their types as well as its methods with their parameter and
-return types).
+inherits from). Here, we think of the type of the class as its
+interface defined by all its members and their signatures (i.e. the
+fields of the class with their types as well as its methods with their
+parameter and return types).
 
 The type of a subclass can extend the type of its superclass by adding
 new members. Since the only way to interact with an object is by
@@ -286,59 +292,66 @@ class `A`, including field `x`.
 
 #### Overriding Methods
 
-Java allows us to override methods that are declared in super
-classes. Since method calls are dynamically dispatched at run-time,
-this feature allows us to modify the behavior of an object of the
-subclass when it is used in a context where an object of the super
-class is expected.
+A particular feature of class inheritance is the ability of subclasses
+to modify the behavior of the methods inherited from the superclass by
+*overriding* those methods.
 
-All Java classes extend the class `Object`. The class
-`Object` provides, among others, a method
-`toString`, which computes a textual representation of the
-object. In particular, the `toString` method can be used to
-pretty-print objects. By default, the textual representation of
-objects consists of the name of the object's class, followed by a
-unique object ID. We can modify the way objects of a specific class
-are printed, by overriding the `toString` method. In Java,
-this can be done as follows:
+As a motivation, let's return to our example of the point class:
 
-```java
-public class Pair {
-  private int first;
-  private int second;
-  ...
-  public String toString() {
-    return "Pair(" + first + ", " + second + ")";
+```scala
+class Point(val first: Double, val second: Double) {
+  def print(): Unit = {
+    println("Point(" + first + ", " + second + ")")
   }
 }
 ```
 
-In Scala, all classes extend the class `scala.Any` which
-also provides a method called `toString`. Scala's class
-hierarchy is further subdivided into the classes
-`scala.AnyVal` and `scala.AnyRef`, which are
-directly derived from `scala.Any`. All instances of
-`scala.AnyVal` are immutable, whereas instances of
-`scala.AnyRef` may have mutable state. That is,
-`scala.AnyRef` corresponds to Java's `Object` class.
+It appears as if the class `Point` does not extend any other
+class. However, if a class does not explicitly extend another class,
+then it extends the class `AnyRef` by default. That is, the above
+class definition is actually interpreted as follows:
+
+```scala
+class Point(val first: Double, val second: Double) {
+  def print(): Unit = {
+    println("Point(" + first + ", " + second + ")")
+  }
+}
+```
+
+The class `AnyRef` is a predefined class in Scala that provides
+certain useful methods such as the method `equals` that determines a
+default implementation for equality on objects (reference equality)
+and the method `toString` that converts an object to a string
+representation. The method `toString` is also used by the Scala REPL
+to print object values. 
+
+By default, the textual representation of objects consists of the name
+of the object's class, followed by a unique object ID. We can modify
+the way objects of a specific class are printed, by overriding the
+`toString` method:
+
+```scala
+class Point(val first: Double, val second: Double) {
+  override def toString(): String = "Point(" + first + ", " + second + ")"
+  
+  def print(): Unit = println(toString())
+}
+```
 
 If we want to override a method in a Scala class, we have to
 explicitly say so by using the `override` qualifier:
 
-```scala
-class Pair(val first: Int, val second: Int) {
-  ...
-  override def toString() = "Pair(" + first + ", " + second + ")"
-}
-```
-
 The pretty printer in the REPL will now use the new
-`toString` method to print `Pair` objects:
+`toString` method to print `Point` objects:
 
 ```scala
-scala> val p = new Pair(1,2)
-p: Pair = Pair(1, 2)
+scala> val p = new Point(1.0,2.0)
+p: Point = Point(1.0, 2.0)
 ```
+
+The question is now, if we have a method call expression `o.m(a1, ...,
+an)` in the program, which version of `m` is being called?
 
 #### Static vs. Dynamic Types and Dynamic Dispatch
 
@@ -397,19 +410,10 @@ go to `B.m`.
 ### Singleton and Companion Objects
 
 It is often useful to declare factory methods that simplify the
-construction of objects, which involve complex initialization code. 
-
-
-Scala does not support static methods as they violate the philosophy
-of object-oriented programming. Instead, it provides *singleton
-objects*. Singleton objects are declared just like classes, but using
-the keyword `object` instead of `class`. There exists exactly one
-instance of each `object`, which is automatically created from the
-`object` declaration when the program is started. Hence, unlike class
-declarations, object declarations cannot have parameter lists.
-
-An object whose name coincides with the name of another class `C` is
-called the *companion object* of `C`. Companion objects have access to
+construction of objects, which involve complex initialization code.  A
+good place to declare such factory methods is the class' *companion
+object*. The companion object of a class `C` is the singleton object
+of the same name.  Companion objects have access to
 all private members of instances of `C`. Consequently, a method or
 field that is defined in the companion object is conceptually
 equivalent to a static method/field of `C` in Java:
@@ -423,20 +427,18 @@ object Point {
 }
 ```
 
-We can access members of companion objects just like static class
-members in Java:
+We can access members of companion objects as with any other singleton object:
 
 ```scala
-scala> def p = Point.make(3,4)
-p: Pair = Point(3, 4)
+scala> def p = Point.make(3.0, 4.0)
+p: Point = Point(3.0, 4.0)
 ```
 
 ### The `apply` Method
 
 Methods with the name `apply` are treated specially by the Scala
-compiler. For example, if we rename the factory method
-`make` in our companion object for the `Point`
-class to `apply`
+compiler. For example, if we rename the factory method `make` in our
+companion object for the `Point` class to `apply`
 
 ```scala
 object Point {
@@ -444,9 +446,9 @@ object Point {
 }
 ```
 
-then we can call this method simply by referring to the
-`Pair` companion object, followed by the argument list of
-the call:
+then we can call this method simply by referring to the `Pair`
+companion object, followed by the argument list of the call to `apply`
+(omitting the method name `apply` in the call):
 
 ```scala
 scala> def p = Point(3.0,4.0)
@@ -461,15 +463,14 @@ scala> def p = Point.apply(3.0,4.0)
 p: Pair = Point(3.0, 4.0)
 ```
 
-The compiler automatically expands `Point(3.0,4.0)` to `Point.apply(3.0,
-4)`. That is, objects with an `apply` method can be used as if they
-were functions. This feature is particularly useful to enable concise
-calls to factory methods. In fact, factory methods for the data
-structures in the Scala standard library are typically implemented
-using `apply` methods in companion objects.
-
-
-
+The compiler automatically expands `Point(3.0,4.0)` to
+`Point.apply(3.0, 4)`. That is, objects with an `apply` method can be
+used as if they were functions. This feature is particularly useful to
+enable concise calls to factory methods. In fact, factory methods for
+the data structures in the Scala standard library are typically
+implemented using `apply` methods in companion objects. We will see
+later that `apply` methods also give us a nice way of realizing
+higher-order functions in Scala.
 
 ### Implementing Subtype Polymorphism
 
@@ -497,7 +498,7 @@ think about the data layout of objects in memory. Towards that end, we
 will first understand inheritance and virtual methods by looking at
 the data layout of objects and vtables. 
 
-### Object Data Layout in Memory
+#### Object Data Layout in Memory
 
 In the following, we will answer these questions:
 
@@ -648,7 +649,7 @@ the size of each instance would grow by the size of one pointer. Consequently
 
 * memory consumption would be higher.
 
-## Virtual Method Tables (vtables)
+#### Virtual Method Tables (vtables)
 
 We can avoid wasting space for each method in each object instance by
 adding an extra level of indirection. When a class defines a virtual
