@@ -162,7 +162,10 @@ def print(this: Point): Unit = {
 
 In this view, a method call `o.m(a1, ...., an)` translates to a call
 of the corresponding global function `m(o, a1, ..., an)`. In our
-concrete example, `p.print()` translates to `print(p)`.
+concrete example, `p.print()` translates to `print(p)`. The expression
+before the `.` in the method call expression is referred to as the
+*receiver expression* and the object that this expression evaluates to
+is the *receiver* of the method call.
 
 The name `this` is actually a keyword in Scala. A usage of `this`
 within the body of a method of a class will be bound to the instance
@@ -178,6 +181,25 @@ class Point(val first: Double, val second: Double) {
                         // which foo is called
   }
 }
+```
+
+If we have an occurrence of `this` outside of a method as in the
+following example:
+
+```scala
+class A {
+  val self = this
+}
+```
+
+then this occurrence refers to the implicit `this` parameter of the
+constructor of the class. That is, it denotes the instance obtained when
+instantiating the class with `new A()`. In particular, the following
+expression evaluates to `true`:
+
+```scala
+val a = new A()
+a == a.self
 ```
 
 ### Accessibility Modifiers
@@ -203,14 +225,15 @@ class MutablePoint(private var first: Double, private var second: Double) {
 }
 ```
 
-Here, the accessibility modifier `private` is added to the field
+The *accessibility modifier* `private` is added to the field
 declarations. This modifier ensures that the two fields are only
-accessible from instances of the class `MutablePoint`. That is, two
-instances of `MutablePoints` can access each others fields `first` and
-`second` directly, however, instances of other classes cannot. In our
-code example, the class still provides indirect read access to the
-fields via the *getter* methods `getFirst` and `getSecond`. However,
-no instance of another class can assign new values to these fields.
+accessible from within the class `MutablePoint`. That is, the methods
+of two instances of `MutablePoints` can access each others fields
+`first` and `second` directly, however, the methods of instances of
+other classes cannot. In our code example, the class still provides
+indirect read access to the fields via the *getter* methods `getFirst`
+and `getSecond`. However, no instance of another class can assign new
+values to these fields.
 
 The most important access modifiers are as follows:
 
@@ -221,7 +244,7 @@ The most important access modifiers are as follows:
 * `private[this]`: each instance only has access to its own version of
   the member, but not the ones of other instances of the same class.
   
-* `protected`: ech instance of the current class as well as all its
+* `protected`: each instance of the current class as well as all its
   subclasses have access to the member (more on subclasses later).
 
 ### Secondary Constructors
@@ -362,10 +385,15 @@ to overridden methods, we have to understand the difference between
 *static* and *dynamic* types.
 
 The static type of an expression in a program is the type that the
-compiler infers for that expression at compile-time. On the other
-hand, the dynamic type of an expression is the actual type of the
-value obtained when the expression is evaluated at run-time. For
-instance, consider the following code snippet:
+compiler infers for that expression at compile-time. The static type
+determines how we can interact with the result value of the expression
+in the program (i.e. which of its fields and methods we can
+access). If an expression `e` has static type `A`, then we can only
+access the members of type `A` on the result value of `e`.
+
+On the other hand, the dynamic type of an expression is the actual
+type of the value obtained when the expression is evaluated at
+run-time. For instance, consider the following code snippet:
 
 ```scala
 class A(val x: Int) {
@@ -568,6 +596,14 @@ Note that:
   relative offset of the entry for `y` in the `B` data layout is the
   same as in the `A` data layout.
 
+* Private fields are also included in the data layout because they
+  contain instance-specific data. When a class `B` extends a class `A`
+  with a private field `x`, the field `x` must also be included in
+  `B`'s data layout, even though `B` cannot access `x` directly. The
+  reason for this is that private fields of `A` can still be accessed
+  indirectly in a `B` instance by calling a public or protected method
+  of `A` on it.
+
 **Question:** If we have polymorphic data structures of variable
 sizes, how should we pass the data? **Answer:** by reference. Hence in
 Scala (and Java), all objects are stored on the heap and passed by
@@ -721,3 +757,6 @@ Virtual methods thus add some runtime overhead:
   optimizations such a inlining function calls. Though this is
   mitigated by just-in-time optimization techniques in modern
   run-time environments like the Java Virtual Machine.
+
+Note that private methods are not included in vtables because they are
+not dynamically dispatched.
