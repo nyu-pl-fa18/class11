@@ -135,8 +135,10 @@ class Point(val first: Double, val second: Double) {
 
 Calling a method `m` of an object `o` can be done using the syntax
 `o.m(a1, ..., an)` where `a1` and `an` are the actual arguments passed
-to the formal parameters of the method. Here is how this looks for our
-example:
+to the formal parameters of the method. The expression `o` before the
+`.` in a method call is called the *receiver* of the method call.
+
+Here is how this looks for our example:
 
 ```scala
 scala> val p = new Point(1.0, 2.0)
@@ -162,16 +164,13 @@ def print(this: Point): Unit = {
 
 In this view, a method call `o.m(a1, ...., an)` translates to a call
 of the corresponding global function `m(o, a1, ..., an)`. In our
-concrete example, `p.print()` translates to `print(p)`. The expression
-before the `.` in the method call expression is referred to as the
-*receiver expression* and the object that this expression evaluates to
-is the *receiver* of the method call.
+concrete example, `p.print()` translates to `print(p)`.
 
 The name `this` is actually a keyword in Scala. A usage of `this`
-within the body of a method of a class will be bound to the instance
-on which the method is called. This can be useful to disambiguate, e.g.,
-between formal parameters of a method and the fields of the instance
-on which that method is called:
+within the body of a method of a class will be bound to the receiver
+of the method call. This can be useful to disambiguate, e.g., between
+formal parameters of a method and the fields of the instance on which
+that method is called:
 
 ```scala
 class Point(val first: Double, val second: Double) {
@@ -204,10 +203,10 @@ a == a.self
 
 ### Accessibility Modifiers
 
-By default all members (i.e. fields and methods) of objects are
-accessible by all other objects. Information hiding can be realized by
-modifying the accessibility of class or object members using so-called
-*visibililty modifiers*.
+By default, all members (i.e. fields and methods) of objects are
+accessible by all other objects. Information hiding and encapsulation
+can be realized by modifying the accessibility of class or object
+members using so-called *accessibility modifiers*.
 
 For instance, suppose that we have an alternative implementation of
 our `Point` class where the two coordinates are mutable fields that
@@ -225,7 +224,7 @@ class MutablePoint(private var first: Double, private var second: Double) {
 }
 ```
 
-The *accessibility modifier* `private` is added to the field
+The accessibility modifier `private` is added to the field
 declarations. This modifier ensures that the two fields are only
 accessible from within the class `MutablePoint`. That is, the methods
 of two instances of `MutablePoints` can access each others fields
